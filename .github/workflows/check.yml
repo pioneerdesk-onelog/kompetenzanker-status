@@ -39,8 +39,10 @@ jobs:
       - name: Alarm-Issue öffnen
         if: steps.c.outputs.changed == 'down'
         env: { GH_TOKEN: "${{ github.token }}" }
-        run: gh issue create --title "⚠️ Störung: Kompetenzanker nicht erreichbar" --body "Automatische Prüfung: ${{ steps.c.outputs.detail }}. Bitte prüfen. Wird bei Erholung automatisch geschlossen." --label stoerung || gh issue create --title "⚠️ Störung: Kompetenzanker nicht erreichbar" --body "Automatische Prüfung: ${{ steps.c.outputs.detail }}."
+        run: |
+          gh issue create --title "⚠️ Störung: Kompetenzanker nicht erreichbar" --body "Automatische Prüfung: ${{ steps.c.outputs.detail }}. Bitte prüfen. Wird bei Erholung automatisch geschlossen." --label stoerung || gh issue create --title "⚠️ Störung: Kompetenzanker nicht erreichbar" --body "Automatische Prüfung: ${{ steps.c.outputs.detail }}."
       - name: Alarm-Issue schließen
         if: steps.c.outputs.changed == 'up'
         env: { GH_TOKEN: "${{ github.token }}" }
-        run: for n in $(gh issue list --state open --search "Störung in:title" --json number --jq '.[].number'); do gh issue close $n --comment "Wieder erreichbar (automatische Prüfung)."; done
+        run: |
+          for n in $(gh issue list --state open --search "Störung in:title" --json number --jq '.[].number'); do gh issue close $n --comment "Wieder erreichbar (automatische Prüfung)."; done
