@@ -1,0 +1,46 @@
+name: Statusprüfung
+on:
+  schedule: [{ cron: "*/5 * * * *" }]
+  workflow_dispatch: {}
+permissions: { contents: write, issues: write }
+concurrency: { group: status-check, cancel-in-progress: false }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prüfen und Verlauf fortschreiben
+        id: c
+        run: |
+          set -u
+          ok=1
+          code_app=$(curl -s -o /tmp/s.json -w '%{http_code}' --max-time 20 https://app.kompetenzanker.de/api/status || echo 000)
+          code_web=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://kompetenzanker.de/ || echo 000)
+          # Zweiter Versuch gegen Fehlalarme (kurze Netzstörung auf GitHub-Seite)
+          if [ "$code_app" != "200" ] || [ "$code_web" != "200" ]; then sleep 30
+            code_app=$(curl -s -o /tmp/s.json -w '%{http_code}' --max-time 20 https://app.kompetenzanker.de/api/status || echo 000)
+            code_web=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://kompetenzanker.de/ || echo 000); fi
+          [ "$code_app" = "200" ] && [ "$code_web" = "200" ] || ok=0
+          echo "app=$code_app web=$code_web ok=$ok"
+          node -e '
+            const fs=require("fs");const h=JSON.parse(fs.readFileSync("data/history.json","utf8"));
+            const ok=process.argv[1]==="1", now=new Date().toISOString(), detail=`Portal ${process.argv[2]}, Website ${process.argv[3]}`;
+            let changed="";
+            if(!ok && h.state==="ok"){h.state="down";h.since=now;h.incidents.unshift({start:now,end:null,detail});changed="down";}
+            if(ok && h.state==="down"){h.state="ok";h.since=now;if(h.incidents[0]&&!h.incidents[0].end)h.incidents[0].end=now;changed="up";}
+            const cutoff=Date.now()-90*86400000;h.incidents=h.incidents.filter(i=>new Date(i.start).getTime()>cutoff);
+            fs.writeFileSync("data/history.json",JSON.stringify(h,null,2)+"\n");fs.appendFileSync(process.env.GITHUB_OUTPUT,`changed=${changed}\ndetail=${detail}\n`);
+          ' "$ok" "$code_app" "$code_web"
+      - name: Verlauf speichern (nur bei Zustandswechsel)
+        if: steps.c.outputs.changed != ''
+        run: |
+          git config user.name "status-bot"; git config user.email "status-bot@users.noreply.github.com"
+          git add data/history.json && git commit -m "Status: ${{ steps.c.outputs.changed }} (${{ steps.c.outputs.detail }})" && git push
+      - name: Alarm-Issue öffnen
+        if: steps.c.outputs.changed == 'down'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh issue create --title "⚠️ Störung: Kompetenzanker nicht erreichbar" --body "Automatische Prüfung: ${{ steps.c.outputs.detail }}. Bitte prüfen. Wird bei Erholung automatisch geschlossen." --label stoerung || gh issue create --title "⚠️ Störung: Kompetenzanker nicht erreichbar" --body "Automatische Prüfung: ${{ steps.c.outputs.detail }}."
+      - name: Alarm-Issue schließen
+        if: steps.c.outputs.changed == 'up'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: for n in $(gh issue list --state open --search "Störung in:title" --json number --jq '.[].number'); do gh issue close $n --comment "Wieder erreichbar (automatische Prüfung)."; done

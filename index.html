@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status · Kompetenzanker</title>
+<meta name="description" content="Betriebsstatus, geplante Wartungen und Störungen von Kompetenzanker.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d4353'/%3E%3Ccircle cx='16' cy='9.2' r='2.3' fill='%23f2913a'/%3E%3C/svg%3E">
+<style>
+  :root{--brand:#0d4353;--brand2:#0d6b83;--accent:#f2913a;--ok:#1f8a5b;--bad:#c2410c;--bg:#f5f7f8;--fg:#0f1d24;--muted:#5b6b73;--card:#fff;--line:#d8e2e6}
+  @media (prefers-color-scheme:dark){:root{--bg:#0b1519;--fg:#e8f0f2;--muted:#9db0b8;--card:#11222a;--line:#1f3a45}}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;line-height:1.55}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 16px 48px}.brand{display:flex;align-items:center;gap:10px;font-weight:700}.brand b{color:var(--brand2)}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px}button.lang{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 10px;color:var(--muted);cursor:pointer}
+  .hero{margin-top:22px;border-radius:16px;padding:20px 22px;color:#fff;background:var(--ok)}.hero.bad{background:var(--bad)}.hero.maint{background:#b4690e}.hero.unk{background:#5b6b73}
+  .hero h1{margin:0;font-size:22px}.hero p{margin:6px 0 0;opacity:.92}
+  section{margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}h2{font-size:16px;margin:0 0 8px}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.row:first-of-type{border-top:0}
+  .pill{font-size:13px;font-weight:600}.ok{color:var(--ok)}.bad{color:var(--bad)}.muted{color:var(--muted);font-size:14px}a{color:var(--brand2)}
+  footer{margin-top:28px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body><div class="wrap">
+<header>
+  <div class="brand"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0d4353"/><g transform="translate(4 4.4)" stroke="#fff" stroke-width="1.9" stroke-linecap="round" fill="none"><line x1="12" y1="6.7" x2="12" y2="19.8"/><line x1="8.2" y1="9.6" x2="15.8" y2="9.6"/><path d="M4.8 14.2 A7.2 7.2 0 0 0 19.2 14.2"/></g><g transform="translate(4 4.4)" fill="#fff"><circle cx="4.8" cy="14.2" r="1.6"/><circle cx="19.2" cy="14.2" r="1.6"/></g><circle cx="16" cy="9.2" r="2.3" fill="#f2913a"/></svg><span>Kompetenz<b>anker</b> · Status</span></div>
+  <button class="lang" id="lang">EN</button>
+</header>
+<div class="hero unk" id="hero"><h1 id="h1">…</h1><p id="hsub"></p></div>
+<section><h2 data-t="comp"></h2><div id="comps"></div></section>
+<section><h2 data-t="maint"></h2><div id="maint" class="muted"></div></section>
+<section><h2 data-t="inc"></h2><div id="inc" class="muted"></div></section>
+<section><h2 data-t="rel"></h2><div id="rel" class="muted"></div></section>
+<footer><span data-t="foot"></span> · <a href="mailto:team@kompetenzanker.de">team@kompetenzanker.de</a> · Pioneerdesk GmbH</footer>
+</div>
+<script>
+const T={de:{ok:"Alle Systeme laufen",okS:"Kompetenzanker ist normal erreichbar.",bad:"Störung",badS:"Wir arbeiten daran. Deine Daten sind sicher gespeichert.",maint:"Geplante Wartung läuft",maintS:"Kompetenzanker ist kurz nicht erreichbar.",unk:"Status wird geprüft …",unkS:"Das Portal antwortet gerade nicht auf diese Abfrage. Falls das anhält, liegt eine Störung vor.",comp:"Komponenten",maintH:"Geplante Wartungen",none:"Derzeit keine Wartung geplant. Wartungen kündigen wir mindestens 5 Werktage vorher an.",inc:"Störungen der letzten 90 Tage",noInc:"Keine Störungen.",rel:"Letztes Update",foot:"Automatische Prüfung alle 5 Minuten",portal:"Lernportal (app.kompetenzanker.de)",db:"Datenbank",web:"Website",up:"in Betrieb",down:"gestört",open:"läuft noch",checked:"Zuletzt geprüft",content:"Lerninhalte"},
+en:{ok:"All systems operational",okS:"Kompetenzanker is available as usual.",bad:"Disruption",badS:"We are working on it. Your data is stored safely.",maint:"Scheduled maintenance in progress",maintS:"Kompetenzanker is briefly unavailable.",unk:"Checking status …",unkS:"The portal is not answering this request right now. If this persists, there is a disruption.",comp:"Components",maintH:"Scheduled maintenance",none:"No maintenance scheduled. We announce maintenance at least 5 working days in advance.",inc:"Incidents in the last 90 days",noInc:"No incidents.",rel:"Latest update",foot:"Automatic check every 5 minutes",portal:"Learning portal (app.kompetenzanker.de)",db:"Database",web:"Website",up:"operational",down:"disrupted",open:"ongoing",checked:"Last checked",content:"Content"}};
+let L=(navigator.language||"de").startsWith("de")?"de":"en";
+const fmt=s=>new Date(s).toLocaleString(L==="de"?"de-DE":"en-GB",{timeZone:"Europe/Berlin",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+let live=null,hist=null;
+async function load(){
+  try{const r=await fetch("https://app.kompetenzanker.de/api/status",{cache:"no-store"});live=await r.json();}catch{live=null}
+  try{hist=await (await fetch("data/history.json",{cache:"no-store"})).json();}catch{hist={incidents:[]}}
+  render();
+}
+function render(){
+  const t=T[L];document.documentElement.lang=L;document.getElementById("lang").textContent=L==="de"?"EN":"DE";
+  document.querySelectorAll("[data-t]").forEach(e=>{const k=e.dataset.t;e.textContent=k==="maint"?t.maintH:t[k]});
+  const now=Date.now();const inMaint=live&&live.maintenance&&live.maintenance.some(m=>new Date(m.start)<=now&&new Date(m.end)>now);
+  const hero=document.getElementById("hero");let cls="unk",h=t.unk,s=t.unkS;
+  if(live&&live.ok){cls="";h=t.ok;s=t.okS}else if(inMaint){cls="maint";h=t.maint;s=t.maintS}else if(live&&!live.ok||hist&&hist.state==="down"){cls="bad";h=t.bad;s=t.badS}
+  hero.className="hero "+cls;document.getElementById("h1").textContent=h;document.getElementById("hsub").textContent=s+(live?` ${t.checked}: ${fmt(live.checkedAt)}`:"");
+  const row=(n,up)=>`<div class="row"><span>${n}</span><span class="pill ${up?"ok":"bad"}">${up?t.up:t.down}</span></div>`;
+  const pOk=!!live, dOk=!!(live&&live.components&&live.components.database);
+  document.getElementById("comps").innerHTML=row(t.portal,pOk)+row(t.db,dOk)+row(t.web,!(hist&&hist.state==="down"&&!pOk));
+  const ms=(live&&live.maintenance)||[];document.getElementById("maint").innerHTML=ms.length?ms.map(m=>`<div class="row"><span><b>${fmt(m.start)} – ${fmt(m.end)}</b><br>${m.what[L]}<br>${m.impact[L]}</span></div>`).join(""):t.none;
+  const inc=(hist&&hist.incidents)||[];document.getElementById("inc").innerHTML=inc.length?inc.map(i=>`<div class="row"><span>${fmt(i.start)} – ${i.end?fmt(i.end):t.open}</span><span class="pill bad">${t.down}</span></div>`).join(""):t.noInc;
+  document.getElementById("rel").innerHTML=live&&live.release?`${live.release.title?live.release.title[L]:""} · ${live.release.id}<br>${t.content}: ${live.release.contentVersion} · <a href="https://app.kompetenzanker.de/neuigkeiten">${L==="de"?"Neuigkeiten":"What's new"}</a>`:"–";
+}
+document.getElementById("lang").onclick=()=>{L=L==="de"?"en":"de";render()};
+load();setInterval(load,60000);
+</script>
+</body></html>
