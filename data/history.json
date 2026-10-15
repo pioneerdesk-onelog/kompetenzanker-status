@@ -1,1 +1,11 @@
-{ "state": "ok", "since": "2026-10-13T00:00:00Z", "incidents": [] }
+{
+  "state": "down",
+  "since": "2026-10-15T01:12:04.193Z",
+  "incidents": [
+    {
+      "start": "2026-10-15T01:12:04.193Z",
+      "end": null,
+      "detail": "Portal 503, Website 200"
+    }
+  ]
+}
